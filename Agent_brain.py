@@ -40,6 +40,7 @@ class Agent(object):
         neighbors=self.get_neighbors(env)
 
         if np.random.rand() < self.epsilon:
+    
             #获取特定目标点的信息素状态表
             pher=env.pheromone.setdefault(str(goal),dict())
             concen_max=0
