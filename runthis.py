@@ -10,7 +10,7 @@ def update():
 
     goal_list=env.getGoal()
 
-    for episode in range(101): 
+    for episode in range(10*Agent_num): 
         
         visual = 0 
         
