@@ -9,7 +9,7 @@ import numpy as np
 from numpy import random
 import random
 
-UNIT = 30
+UNIT = 25
 
 class Agent(object):
 

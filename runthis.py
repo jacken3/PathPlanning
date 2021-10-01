@@ -5,7 +5,6 @@ from Agent_brain import Agent
 import random
 from config import Config
 
-UNIT = 25
 
 def update():
 
@@ -17,8 +16,8 @@ def update():
         
         #重置每个机器人的状态
         for Robot in Agent_list:
-            Robot.state= [12.5+(Robot.start[0]-1)*UNIT-10, 12.5+(Robot.start[1]-1)*UNIT-10,
-           12.5+(Robot.start[0]-1)*UNIT+10, 12.5+(Robot.start[1]-1)*UNIT+10]
+            Robot.state= [12.5+(Robot.start[0]-1)*env.UNIT-10, 12.5+(Robot.start[1]-1)*env.UNIT-10,
+           12.5+(Robot.start[0]-1)*env.UNIT+10, 12.5+(Robot.start[1]-1)*env.UNIT+10]
         #重置地图
         env.reset(Agent_list,visual)
         env.update()  
@@ -36,8 +35,8 @@ def update():
 
     # 地图信息素信息构建完毕，进入任务调度处理 任务分配的标准为最大化信息素浓度和
     for Robot in Agent_list:
-            Robot.state= [12.5+(Robot.start[0]-1)*UNIT-10, 12.5+(Robot.start[1]-1)*UNIT-10,\
-                          12.5+(Robot.start[0]-1)*UNIT+10, 12.5+(Robot.start[1]-1)*UNIT+10]
+            Robot.state= [12.5+(Robot.start[0]-1)*env.UNIT-10, 12.5+(Robot.start[1]-1)*env.UNIT-10,\
+                          12.5+(Robot.start[0]-1)*env.UNIT+10, 12.5+(Robot.start[1]-1)*env.UNIT+10]
     env.reset(Agent_list)
     
     concen_sum_max=0
@@ -144,7 +143,7 @@ def check_cons(state_union,state_union_next):
 def legal_state(route,index,time,env):
     state_now=np.array(route[index][time])
     #surround=np.array([[1,0],[-1,0,],[0,1],[0,-1]])
-    surround=np.array([[UNIT,0,UNIT,0],[-UNIT,0,-UNIT,0],[0,UNIT,0,UNIT],[0,-UNIT,0,-UNIT]])
+    surround=np.array([[env.UNIT,0,env.UNIT,0],[-env.UNIT,0,-env.UNIT,0],[0,env.UNIT,0,env.UNIT],[0,-env.UNIT,0,-env.UNIT]])
     states=[]
     for each in surround :
         #判断当前状态周围的除原路径上的其他可选状态env.UNIT*env.MAZE_H
@@ -155,7 +154,7 @@ def legal_state(route,index,time,env):
 
 if __name__ == "__main__":
 
-    con=Config("config_1.ini")
+    con=Config("config_4.ini")
     Agent_num=eval(con.Agent_config["num"])
     Agent_start=eval(con.Agent_config["start"])
     Agent_list=[]
