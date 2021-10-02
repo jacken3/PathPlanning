@@ -15,13 +15,14 @@ class Agent(object):
         self.state= [12.5+(self.start[0]-1)*UNIT-10, 12.5+(self.start[1]-1)*UNIT-10,
            12.5+(self.start[0]-1)*UNIT+10, 12.5+(self.start[1]-1)*UNIT+10]
 
-    def get_neighbors(self,env):
+    def get_neighbors(self,env,goal):
         neighbors=[]
 
         surround=[[UNIT,0,UNIT,0],[-UNIT,0,-UNIT,0],[0,UNIT,0,UNIT],[0,-UNIT,0,-UNIT]]
         for each in surround:
             around=list(np.array(self.state)+np.array(each))
-            if around not in env.Obs and (np.array(around)>0).all() and (np.array(around) < env.UNIT*env.MAZE_H).all():
+            if around not in env.Obs and (np.array(around)>0).all() and (np.array(around) < env.UNIT*env.MAZE_H).all() \
+                and (around not in env.getGoal() or around == goal):
                  neighbors.append(around)
 
         return neighbors 
@@ -31,7 +32,7 @@ class Agent(object):
 
         #依据信息素浓度选择下一个状态
         state_next=[]
-        neighbors=self.get_neighbors(env)
+        neighbors=self.get_neighbors(env,goal)
 
         if np.random.rand() < self.epsilon:
     
@@ -75,7 +76,7 @@ class Agent(object):
 
         while (True):
             #获取当前状态的邻居状态
-            neighbors=self.get_neighbors(env)
+            neighbors=self.get_neighbors(env,goal)
             #待选的下个状态的列表
             state_next=[]
             concen_max=0

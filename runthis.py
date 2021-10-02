@@ -11,7 +11,7 @@ def update():
 
     goal_list=env.getGoal()
 
-    for episode in range(50): 
+    for episode in range(200): 
         
         visual = 0 
         
