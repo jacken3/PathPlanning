@@ -4,13 +4,14 @@ import numpy as np
 from Agent_brain import Agent
 import random
 from config import Config
+import pandas as pd
 
 
 def update():
 
     goal_list=env.getGoal()
 
-    for episode in range(10*Agent_num): 
+    for episode in range(50): 
         
         visual = 0 
         
@@ -64,12 +65,16 @@ def update():
     route_len=2
     #记录当前遍历的路径长度
     i=0
+    len_Route=[0]*Agent_num
     while i < route_len-1:
         
         #右对齐所有路径
-        for route in Route_final:
+        for Agent_tag,route in zip(range(Agent_num),Route_final):
             if len(route)==i+1:
+                if len_Route[Agent_tag]==0:
+                    len_Route[Agent_tag]=len(route)
                 route.append(route[i])
+                
 
         #同一时刻各个Agent所在的坐标
         stateSameTime=[tuple(Route_final[Agent_index][i]) for Agent_index in range(len(Agent_list))]
@@ -118,9 +123,21 @@ def update():
 
         route_len=max([len(route) for route in Route_final])
         i+=1
-
+    for i in range(Agent_num):
+        if len_Route[i]==0:
+            len_Route[i]=route_len
+    step_num_table=pd.DataFrame(columns=range(1,Agent_num+1),data=[len_Route])
+    step_num_table.to_csv('step_count.csv',mode='a')
+    # for i in range(Agent_num):
+    #     count=0
+    #     state_last=[0,0,0,0]
+    #     while not Route_final[i][count]==state_last and count <len(Route_final[i])-1 :
+    #         state_last=Route_final[i][count]
+    #         count+=1
+    #     len_Route.append(count)
+    print(len_Route)
     env.final(Route_final)
-    print(Route_final)
+    env.destroy()
     print('game over!')
     
 

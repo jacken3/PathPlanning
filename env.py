@@ -157,7 +157,7 @@ class Maze(tk.Tk, object):
 
         for i in range(length-1):
 
-            time.sleep(1)
+            time.sleep(0)
             for Agent_tag,route in zip(range(len(Route_list)),Route_list):
                 state_now=route[i]
                 state_next=route[i+1]
