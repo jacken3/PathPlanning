@@ -1,6 +1,8 @@
 # # imports every file form tkinter and tkinter.ttk
 # from tkinter import *
-# from tkinter.ttk import * 
+# from tkinter.ttk import *
+import numpy as np 
+import math
   
 # class GFG:
 #      def __init__( self , master = None ):
@@ -70,13 +72,18 @@
       
 #      # Infnite loop breaks only by interrupt
 #      mainloop()
-a=[1]
-for i in range(len(a)):
-    a.append(2)
-    print(i)
-print(list(range(1,6)))
-a=[1]
-b=[[1,2,3],[2,3,4]]
-print(b[:][1])
-if not a:
-    print("OK")
+# a=[1]
+# for i in range(len(a)):
+#     a.append(2)
+#     print(i)
+# print(list(range(1,6)))
+# a=[1]
+# b=[[1,2,3],[2,3,4]]
+# print(b[:][1])
+# if not a:
+#     print("OK")
+a=np.array([1,2,3,4])
+b=np.array([2,4,6,8])
+c=b/a
+c=np.log(c)
+print(c)

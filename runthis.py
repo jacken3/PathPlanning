@@ -11,7 +11,7 @@ def update():
 
     goal_list=env.getGoal()
 
-    for episode in range(50): 
+    for episode in range(500): 
         
         visual = 0 
         
@@ -20,7 +20,7 @@ def update():
             Robot.state= [12.5+(Robot.start[0]-1)*env.UNIT-10, 12.5+(Robot.start[1]-1)*env.UNIT-10,
            12.5+(Robot.start[0]-1)*env.UNIT+10, 12.5+(Robot.start[1]-1)*env.UNIT+10]
         #重置地图
-        env.reset(Agent_list,visual)
+        env.reset(visual)
         env.update()  
 
         #每个Agent随机寻路,需要的参数为Agent的目标
@@ -33,13 +33,17 @@ def update():
         #change goal for each Agent 本质是对goal列表进行了一个移位操作
         goal_list.insert(0,goal_list.pop())
 
-
-    # 地图信息素信息构建完毕，进入任务调度处理 任务分配的标准为最大化信息素浓度和
     for Robot in Agent_list:
             Robot.state= [12.5+(Robot.start[0]-1)*env.UNIT-10, 12.5+(Robot.start[1]-1)*env.UNIT-10,\
                           12.5+(Robot.start[0]-1)*env.UNIT+10, 12.5+(Robot.start[1]-1)*env.UNIT+10]
-    env.reset(Agent_list)
-    
+    env.reset(visual)
+
+    # 地图信息素信息构建完毕，开始实现目标的K-means聚类
+    env.goalCluster()
+
+
+    # 地图信息素信息构建完毕，进入任务调度处理 任务分配的标准为最大化信息素浓度和
+
     concen_sum_max=0
     goal_last=[goal for goal in goal_list]
     
