@@ -181,7 +181,7 @@ if __name__ == "__main__":
     Agent_start=eval(con.Agent_config["start"])
     Agent_list=[]
     for i in range(Agent_num):
-        Agent_list.append(Agent(Agent_start[i],e_greedy=0.9))
+        Agent_list.append(Agent(Agent_start[i],e_greedy=0.8))
 
     env = Maze(Agent_list,con)
 

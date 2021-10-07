@@ -178,21 +178,24 @@ class Maze(tk.Tk, object):
 
     #利用k-means算法实现目标点的聚类
     def goalCluster(self):
-        goal_list=self.getGoal()
-        goalEigenvector=[]
-        distance_dic={}
-        for goal in goal_list:
-            Eigenvector=[]
-            for Agent in self.Agent_list:
-                Eigenvector.append(self.pheromone[str(goal)][str(Agent.state)]) 
-            goalEigenvector.append(Eigenvector)
-        for i in range(len(goalEigenvector)):
-            for j in range(i+1,len(goalEigenvector)):
-                dif=list(np.array(goalEigenvector[i])/np.array(goalEigenvector[j]))
-                dst=sum([abs(math.log(diff,0.9)) for diff in dif])
-                distance_dic[(i,j)]=dst
-        distance_dic=sorted(distance_dic.items(),key=lambda x:x[1])
-        print(distance_dic)
+        if len(self.Agent_list)<len(self.goal):
+            goal_list=self.getGoal()
+            goalEigenvector=[]
+            distance_dic={}
+            for goal in goal_list:
+                Eigenvector=[]
+                for Agent in self.Agent_list:
+                    Eigenvector.append(self.pheromone[str(goal)][str(Agent.state)]) 
+                goalEigenvector.append(Eigenvector)
+            for i in range(len(goalEigenvector)):
+                print("第%d个目标的特征向量："%(i+1),goalEigenvector[i])
+                for j in range(i+1,len(goalEigenvector)):
+                    dif=list(np.array(goalEigenvector[i])/np.array(goalEigenvector[j]))
+                    dst=sum([abs(math.log(diff,0.9)) for diff in dif])
+                    distance_dic[(i,j)]=dst
+            distance_dic=sorted(distance_dic.items(),key=lambda x:x[1])
+        else:
+            print("Agent数量与Goal数量一致，无需聚类")
 
 
                 
