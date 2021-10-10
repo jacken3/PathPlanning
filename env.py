@@ -178,7 +178,8 @@ class Maze(tk.Tk, object):
 
     #利用k-means算法实现目标点的聚类
     def goalCluster(self):
-        if len(self.Agent_list)<len(self.goal):
+        goal_cluster=[]
+        if len(self.Agent_list)<=len(self.goal):
             goal_list=self.getGoal()
             goalEigenvector=[]
             distance_dic={}
@@ -194,8 +195,26 @@ class Maze(tk.Tk, object):
                     dst=sum([abs(math.log(diff,0.9)) for diff in dif])
                     distance_dic[(i,j)]=dst
             distance_dic=sorted(distance_dic.items(),key=lambda x:x[1])
+            cluster=[i for i in range(len(self.goal))]
+            for k in range(len(self.goal)-len(self.Agent_list)):
+                cluster[distance_dic[k][0][1]]=cluster[distance_dic[k][0][0]]
+            cluster_dic={}
+            for i in range(len(cluster)):
+                if cluster_dic.setdefault(cluster[i],None)==None:  
+                    cluster_dic[cluster[i]]=[goal_list[i]]
+                else:
+                    cluster_dic[cluster[i]].append(goal_list[i]) 
+            for k in cluster_dic.keys():
+                goal_cluster.append(cluster_dic[k])
+            
         else:
+            goal_list=self.getGoal()
+            for goal in goal_list:
+                goal_cluster.append([goal])
             print("Agent数量与Goal数量一致，无需聚类")
+        
+        return goal_cluster
+            
 
 
                 

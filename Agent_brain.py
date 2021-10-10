@@ -69,32 +69,35 @@ class Agent(object):
                 break
         return Route
 
-    def final_route(self,goal,env):
+    def final_route(self,cluster,env):
         final_route=[self.state]
         #获得对应目标的信息素
-        pher=env.pheromone.setdefault(str(goal),dict())
+        
+        for goal in cluster:
+            pher=env.pheromone.setdefault(str(goal),dict())
 
-        while (True):
-            #获取当前状态的邻居状态
-            neighbors=self.get_neighbors(env,goal)
-            #待选的下个状态的列表
-            state_next=[]
-            concen_max=0
+            while (True):
+                #获取当前状态的邻居状态
+                neighbors=self.get_neighbors(env,goal)
+                #待选的下个状态的列表
+                state_next=[]
+                concen_max=0
 
-            for neighbor in neighbors :
-                if pher.setdefault(str(neighbor),0) >= concen_max:
-                    concen_max=pher[str(neighbor)]
-            
-            for neighbor in neighbors:
-                if pher[str(neighbor)] == concen_max :
-                    state_next.append(neighbor)
-            
-            next_state=random.choice(state_next)
-            self.state=next_state
-            final_route.append(next_state)
+                for neighbor in neighbors :
+                    if pher.setdefault(str(neighbor),0) >= concen_max:
+                        concen_max=pher[str(neighbor)]
+                
+                for neighbor in neighbors:
+                    if pher[str(neighbor)] == concen_max :
+                        state_next.append(neighbor)
+                
+                next_state=random.choice(state_next)
+                self.state=next_state
+                final_route.append(next_state)
 
-            if next_state==goal:
-                break
+                if next_state==goal:
+                    break
+                
 
         return final_route       
 

@@ -39,29 +39,30 @@ def update():
     env.reset(visual)
 
     # 地图信息素信息构建完毕，开始实现目标的K-means聚类
-    env.goalCluster()
+    goal_cluster=env.goalCluster()
+    print("分组情况：",goal_cluster)
 
 
     # 地图信息素信息构建完毕，进入任务调度处理 任务分配的标准为最大化信息素浓度和
 
     concen_sum_max=0
-    goal_last=[goal for goal in goal_list]
     
-    for each_allocation_scheme in range(len(goal_list)):
+    for each_allocation_scheme in range(len(goal_cluster)):
         concen_sum=0
-        for goal,Agent in zip(goal_list,Agent_list):
-            print(env.pheromone[str(goal)][str(Agent.state)])
-            concen_sum += env.pheromone[str(goal)][str(Agent.state)]
+        for cluster,Agent in zip(goal_cluster,Agent_list):
+            for goal in cluster:
+                print(env.pheromone[str(goal)][str(Agent.state)])
+                concen_sum += env.pheromone[str(goal)][str(Agent.state)]
         if concen_sum > concen_sum_max:
             concen_sum_max=concen_sum
-            goal_last=[goal for goal in goal_list]
+            goal_last=[cluster for cluster in goal_cluster]
 
-        goal_list.insert(0,goal_list.pop())
+        goal_cluster.insert(0,goal_cluster.pop())
 
     #任务分配完毕，开始统筹路径中的避障问题
     Route_final=[]
-    for goal,robot in zip(goal_last,Agent_list):
-            Route_final.append(robot.final_route(goal,env))
+    for cluster,robot in zip(goal_last,Agent_list):
+            Route_final.append(robot.final_route(cluster,env))
 
 
     #Route_final=[[[2,1],[1,1],[1,2]],[[1,0],[1,1],[2,1]],[[2,0],[1,0],[1,1]]] 测试用
