@@ -26,6 +26,7 @@ def taskExecute():
     DontGo=[]
     direction_all=[[25,0,25,0],[-25,0,-25,0],[0,25,0,25],[0,-25,0,-25]]
     index=[0]*len(Agent_list)
+    flag=0
 
     while not Mission_compelete.all():
 
@@ -76,8 +77,6 @@ def taskExecute():
                     Mission_stage[Agent_tag] += 1
                 else:
                     for each in next_direction:
-                        print(list(each))
-                        print(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag])))
                         if list(each) not in DontGo \
                             and list(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs:
                            env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
@@ -85,17 +84,20 @@ def taskExecute():
                            dx-=each[0]/25
                            dy-=each[1]/25
                            Agnet_direction[Agent_tag]=[dx,dy]
-                           DontGo=[-each]
+                           DontGo=[list(-each)]
+                           flag=1
                            break
-                    for each in direction_all:
-                        if list(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs and each not in DontGo:  
-                           env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
-                           env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
-                           dx-=each[0]/25
-                           dy-=each[1]/25
-                           Agnet_direction[Agent_tag]=[dx,dy]
-                           DontGo=[list(-np.array(each))]
-                           break
+                    if not flag:
+                        for each in direction_all:
+                            if list(np.array(each)+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs and each not in DontGo:  
+                                env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
+                                env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
+                                dx-=each[0]/25
+                                dy-=each[1]/25
+                                Agnet_direction[Agent_tag]=[dx,dy]
+                                DontGo=[list(-np.array(each))]
+                                flag=0
+                                break
 
 if __name__ == "__main__":
 
