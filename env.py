@@ -197,7 +197,9 @@ class Maze(tk.Tk, object):
             distance_dic=sorted(distance_dic.items(),key=lambda x:x[1])
             cluster=[i for i in range(len(self.goal))]
             for k in range(len(self.goal)-len(self.Agent_list)):
-                cluster[distance_dic[k][0][1]]=cluster[distance_dic[k][0][0]]
+                for i in range(len(self.goal)):
+                    if cluster[i]==cluster[distance_dic[k][0][1]]:
+                        cluster[i]=cluster[distance_dic[k][0][0]]
             cluster_dic={}
             for i in range(len(cluster)):
                 if cluster_dic.setdefault(cluster[i],None)==None:  
