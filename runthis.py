@@ -5,6 +5,7 @@ from Agent_brain import Agent
 import random
 from config import Config
 import pandas as pd
+import pickle
 
 
 def update():
@@ -32,6 +33,12 @@ def update():
 
         #change goal for each Agent 本质是对goal列表进行了一个移位操作
         goal_list.insert(0,goal_list.pop())
+        
+        #信息素随时间的衰减
+        for goal in env.pheromone.keys():
+            for state in env.pheromone[goal]:
+                env.pheromone[goal][state]*=0.9
+            
 
     for Robot in Agent_list:
             Robot.state= [12.5+(Robot.start[0]-1)*env.UNIT-10, 12.5+(Robot.start[1]-1)*env.UNIT-10,\
@@ -143,6 +150,21 @@ def update():
     #     len_Route.append(count)
     print(len_Route)
     env.final(Route_final)
+    with open("Phermenon.data","wb") as outfile:
+        pickle.dump(env.pheromone,outfile)
+    with open("Route.data","wb") as outfile:
+        pickle.dump(Route_final,outfile)
+    #保存任务分配表
+    dislist=[]
+    with open("dislist.data","wb") as outfile:
+        for cluster in goal_last:
+            c=[]
+            for goal in cluster:
+                for i in range(len(env.goal)):
+                    if goal==env.canvas.coords(env.goal[i]):
+                        c.append(i)
+            dislist.append(c)
+        pickle.dump(dislist,outfile)
     env.destroy()
     print('game over!')
     
