@@ -5,7 +5,6 @@ from Agent_brain import Agent
 import random
 from config import Config
 import pandas as pd
-import math
 
 
 def update():
