@@ -24,15 +24,16 @@ def taskExecute():
     Mission_compelete=np.array([0]*len(Agent_list))
     Agnet_direction={}
     DontGo=[]
+    stage=[len(goal) for goal in dis_list]
     direction_all=[[25,0,25,0],[-25,0,-25,0],[0,25,0,25],[0,-25,0,-25]]
     index=[0]*len(Agent_list)
-    flag=0
+    Flag=0
 
     while not Mission_compelete.all():
-
+        time.sleep(1)
         for Agent_tag in range(len(RouteFinal)):
             #任务状态未丢失则按原定路线行进
-            if not Mission_Lost[Agent_tag]:
+            if not Mission_Lost[Agent_tag] and not Mission_compelete[Agent_tag]:
                 state_now=RouteFinal[Agent_tag][index[Agent_tag]]
                 state_next=RouteFinal[Agent_tag][index[Agent_tag]+1]
                 base_action=np.array([0,0])
@@ -51,7 +52,7 @@ def taskExecute():
                     else:
                         Mission_stage[Agent_tag] += 1
             #任务丢失
-            elif  Mission_Lost[Agent_tag]:
+            elif  Mission_Lost[Agent_tag] and not Mission_compelete[Agent_tag]:
                 #第一次初始化矫正的目标
                 if not Agnet_direction.setdefault(Agent_tag,0):
                     dx=goal_real[dis_list[Agent_tag][Mission_stage[Agent_tag]]][0]-goal[dis_list[Agent_tag][Mission_stage[Agent_tag]]][0]
@@ -73,32 +74,41 @@ def taskExecute():
                     next_direction.append(np.array([0,-25,0,-25]))
                 #已经到达校正后的目标
                 if not next_direction:
-                    Mission_Lost[Agent_tag] == 0
+                    Mission_Lost[Agent_tag] = 0
                     Mission_stage[Agent_tag] += 1
                 else:
                     for each in next_direction:
+                        print(list(each))
+                        print(list(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))))
                         if list(each) not in DontGo \
                             and list(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs:
                            env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
                            env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
+                           env_real.update()
                            dx-=each[0]/25
                            dy-=each[1]/25
                            Agnet_direction[Agent_tag]=[dx,dy]
                            DontGo=[list(-each)]
-                           flag=1
+                           Flag=1
                            break
-                    if not flag:
+                    if not Flag:
                         for each in direction_all:
-                            if list(np.array(each)+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs and each not in DontGo:  
+                            if list(np.array(each)+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs and\
+                                each not in DontGo:  
                                 env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
                                 env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
+                                env_real.update()
                                 dx-=each[0]/25
                                 dy-=each[1]/25
                                 Agnet_direction[Agent_tag]=[dx,dy]
                                 DontGo=[list(-np.array(each))]
-                                flag=0
                                 break
+                    Flag=0
+            if Mission_stage[Agent_tag]==stage[Agent_tag]:
+                Mission_compelete[Agent_tag]=1
 
+    print("Mission Completed")
+    
 if __name__ == "__main__":
 
     #仿真环境和参数
