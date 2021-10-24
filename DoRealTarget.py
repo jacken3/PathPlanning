@@ -6,14 +6,6 @@ from config import Config
 import pickle
 import time
 
-def update():
-    for i in range(len(Agent_list)):
-        #预计目标任务点
-        pre_task=[goal_coords[j] for j in dis_list[i]]
-
-    #按照原任务执行路径
-    taskExecute()
-
 
 def isLegal(goal,move):
     coord=env_real.canvas.coords(goal)
@@ -34,8 +26,9 @@ def taskExecute():
     Mission_Lost=[0]*len(Agent_list)
     Mission_stage=[0]*len(Agent_list)
     Mission_compelete=np.array([0]*len(Agent_list))
+    #Mission_change=[0]*len(Agent_list)
     Agnet_direction={}
-    DontGo=[]
+    DontGo=[[0]]*len(Agent_list)
     stage=[len(goal) for goal in dis_list]
     direction_all=[[25,0,25,0],[-25,0,-25,0],[0,25,0,25],[0,-25,0,-25]]
     index=[0]*len(Agent_list)
@@ -72,6 +65,9 @@ def taskExecute():
                         Mission_Lost[Agent_tag]=1
                     else:
                         Mission_stage[Agent_tag] += 1
+                        if Mission_stage[Agent_tag]==stage[Agent_tag]:
+                            Mission_compelete[Agent_tag]=1
+
             #任务丢失
             elif  Mission_Lost[Agent_tag] and not Mission_compelete[Agent_tag]:
                 # #第一次初始化矫正的目标
@@ -100,39 +96,88 @@ def taskExecute():
                 if not next_direction:
                     Mission_Lost[Agent_tag] = 0
                     Mission_stage[Agent_tag] += 1
+                    Agnet_direction[Agent_tag]=0
+                    DontGo[Agent_tag]=[[0]]
+                    if Mission_stage[Agent_tag]==stage[Agent_tag]:
+                        Mission_compelete[Agent_tag]=1
+                    #如果是中途目标发生变化则重新规划路线
+                    if not Mission_compelete[Agent_tag]:
+                        Path_new=RePlanning(goal_coords[dis_list[Agent_tag][Mission_stage[Agent_tag]]],env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))
+                        idx=index[Agent_tag]
+                        while not RouteFinal[Agent_tag][idx]==goal_coords[dis_list[Agent_tag][Mission_stage[Agent_tag]]]:
+                            del RouteFinal[Agent_tag][idx]
+                        del RouteFinal[Agent_tag][idx]
+                        for state in Path_new:
+                            RouteFinal[Agent_tag].insert(idx,state)
+                            idx+=1
+
                 else:
                     for each in next_direction:
                         print(list(each))
                         print(list(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))))
-                        if list(each) not in DontGo \
+                        if list(each) not in DontGo[Agent_tag] \
                             and list(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs:
                            env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
                            env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
                            env_real.update()
-                        #    dx-=each[0]/25
-                        #    dy-=each[1]/25
-                        #    Agnet_direction[Agent_tag]=[dx,dy]
-                           DontGo=[list(-each)]
+                           DontGo[Agent_tag]=[list(-each)]
                            Flag=1
                            break
                     if not Flag:
                         for each in direction_all:
                             if list(np.array(each)+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))) not in env_real.Obs and\
-                                each not in DontGo:  
+                                each not in DontGo[Agent_tag]:  
                                 env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
                                 env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
                                 env_real.update()
-                                # dx-=each[0]/25
-                                # dy-=each[1]/25
-                                # Agnet_direction[Agent_tag]=[dx,dy]
-                                DontGo=[list(-np.array(each))]
+                                DontGo[Agent_tag]=[list(-np.array(each))]
                                 break
                     Flag=0
-            if Mission_stage[Agent_tag]==stage[Agent_tag]:
-                Mission_compelete[Agent_tag]=1
+            
 
     print("Mission Completed")
-    
+
+def RePlanning(goal,state):
+    state_now=state
+    pher=env_real.pheromone[str(goal)]
+    final_route=[state_now]
+    while (True):
+        
+        #获取当前状态的邻居状态
+        neighbors=get_neighbors(state_now,env_real,goal)
+        #待选的下个状态的列表
+        state_next=[]
+        concen_max=0
+
+        for neighbor in neighbors :
+            if pher.setdefault(str(neighbor),0) >= concen_max:
+                concen_max=pher[str(neighbor)]
+        
+        for neighbor in neighbors:
+            if pher[str(neighbor)] == concen_max :
+                state_next.append(neighbor)
+        
+        next_state=random.choice(state_next)
+        state_now=next_state
+        final_route.append(next_state)
+
+        if next_state==goal:
+            break
+    return final_route  
+
+
+def get_neighbors(state,env,goal):
+        neighbors=[]
+
+        surround=[[25,0,25,0],[-25,0,-25,0],[0,25,0,25],[0,-25,0,-25]]
+        for each in surround:
+            around=list(np.array(state)+np.array(each))
+            if around not in env.Obs and (np.array(around)>0).all() and (np.array(around) < env.UNIT*env.MAZE_H).all() \
+                and (around not in env.getGoal() or around == goal):
+                 neighbors.append(around)
+
+        return neighbors 
+
 if __name__ == "__main__":
 
     #仿真环境和参数
@@ -161,5 +206,5 @@ if __name__ == "__main__":
         dis_list=pickle.load(inputfile)
 
   
-    env_real.after(100, update)
+    env_real.after(100, taskExecute)
     env_real.mainloop()
