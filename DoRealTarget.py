@@ -1,4 +1,4 @@
-from random import random
+import random
 from env import Maze
 import numpy as np
 from Agent_brain import Agent
@@ -15,7 +15,19 @@ def update():
     taskExecute()
 
 
+def isLegal(goal,move):
+    coord=env_real.canvas.coords(goal)
+    coord_after=np.array(coord)+np.array(move)
+    if (coord_after<0).any() or coord_after[0]>env_real.MAZE_W*25 or coord_after[1]>env_real.MAZE_H*25:
+        return False
+    if list(coord_after) in env_real.Obs:
+        return False
+        pass
+    for each in env_real.goal:
+        if env_real.canvas.coords(each) == list(coord_after):
+            return False
 
+    return True
 
 def taskExecute():
 
@@ -30,6 +42,15 @@ def taskExecute():
     Flag=0
 
     while not Mission_compelete.all():
+        for each_goal,goal_img,i in zip(env_real.goal,env_real.goal_img,range(len(goal_real))):
+            if np.random.random()>0.95:
+                move=random.choice(direction_all)
+                if isLegal(each_goal,move):
+                    env_real.canvas.move(each_goal,move[0],move[1])
+                    env_real.canvas.move(goal_img,move[0],move[1])
+                    # goal_real[i][0]+=move[0]/25
+                    # goal_real[i][1]+=move[1]/25
+                    env_real.update()
         time.sleep(1)
         for Agent_tag in range(len(RouteFinal)):
             #任务状态未丢失则按原定路线行进
@@ -53,11 +74,14 @@ def taskExecute():
                         Mission_stage[Agent_tag] += 1
             #任务丢失
             elif  Mission_Lost[Agent_tag] and not Mission_compelete[Agent_tag]:
-                #第一次初始化矫正的目标
-                if not Agnet_direction.setdefault(Agent_tag,0):
-                    dx=goal_real[dis_list[Agent_tag][Mission_stage[Agent_tag]]][0]-goal[dis_list[Agent_tag][Mission_stage[Agent_tag]]][0]
-                    dy=goal_real[dis_list[Agent_tag][Mission_stage[Agent_tag]]][1]-goal[dis_list[Agent_tag][Mission_stage[Agent_tag]]][1]
-                    Agnet_direction[Agent_tag]=[dx,dy]
+                # #第一次初始化矫正的目标
+                # if not Agnet_direction.setdefault(Agent_tag,0):
+                #     dx=goal_real[dis_list[Agent_tag][Mission_stage[Agent_tag]]][0]-goal[dis_list[Agent_tag][Mission_stage[Agent_tag]]][0]
+                #     dy=goal_real[dis_list[Agent_tag][Mission_stage[Agent_tag]]][1]-goal[dis_list[Agent_tag][Mission_stage[Agent_tag]]][1]
+                #     Agnet_direction[Agent_tag]=[dx,dy]
+                dx=(env_real.canvas.coords(env_real.goal[dis_list[Agent_tag][Mission_stage[Agent_tag]]])[0]-env_real.canvas.coords(env_real.Agent_rect[Agent_tag])[0])/25
+                dy=(env_real.canvas.coords(env_real.goal[dis_list[Agent_tag][Mission_stage[Agent_tag]]])[1]-env_real.canvas.coords(env_real.Agent_rect[Agent_tag])[1])/25
+                Agnet_direction[Agent_tag]=[dx,dy]
                 #矫正路线
                 next_direction=[]
                 #右移
@@ -85,9 +109,9 @@ def taskExecute():
                            env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
                            env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
                            env_real.update()
-                           dx-=each[0]/25
-                           dy-=each[1]/25
-                           Agnet_direction[Agent_tag]=[dx,dy]
+                        #    dx-=each[0]/25
+                        #    dy-=each[1]/25
+                        #    Agnet_direction[Agent_tag]=[dx,dy]
                            DontGo=[list(-each)]
                            Flag=1
                            break
@@ -98,9 +122,9 @@ def taskExecute():
                                 env_real.canvas.move(env_real.Agent_rect[Agent_tag],each[0],each[1])
                                 env_real.canvas.move(env_real.Agent[Agent_tag],each[0],each[1])
                                 env_real.update()
-                                dx-=each[0]/25
-                                dy-=each[1]/25
-                                Agnet_direction[Agent_tag]=[dx,dy]
+                                # dx-=each[0]/25
+                                # dy-=each[1]/25
+                                # Agnet_direction[Agent_tag]=[dx,dy]
                                 DontGo=[list(-np.array(each))]
                                 break
                     Flag=0

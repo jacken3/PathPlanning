@@ -41,6 +41,7 @@ class Maze(tk.Tk, object):
         self.Agent_rect=[]
         #以在画布中的序号保存每个目标
         self.goal=[]
+        self.goal_img=[]
         #AgentIMG列表
         self.img_UAV=[]
         self._build_maze(con)
@@ -85,7 +86,7 @@ class Maze(tk.Tk, object):
                 oval_center[0] - 10, oval_center[1] - 10,
                 oval_center[0] + 10, oval_center[1] + 10,
                 fill='',outline = ''))
-            self.canvas.create_image(oval_center[0], oval_center[1], anchor='center',image=MBase_image)
+            self.goal_img.append(self.canvas.create_image(oval_center[0], oval_center[1], anchor='center',image=MBase_image))
         
 
         # create red rect 1
