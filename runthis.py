@@ -6,6 +6,7 @@ import random
 from config import Config
 import pandas as pd
 import pickle
+import itertools
 
 
 def update():
@@ -54,17 +55,16 @@ def update():
 
     concen_sum_max=0
     
-    for each_allocation_scheme in range(len(goal_cluster)):
+    for each_allocation_scheme in itertools.permutations(goal_cluster,len(goal_cluster)):
+        each_allocation_scheme=list(each_allocation_scheme)
         concen_sum=0
-        for cluster,Agent in zip(goal_cluster,Agent_list):
+        for cluster,Agent in zip(each_allocation_scheme,Agent_list):
             for goal in cluster:
                 print(env.pheromone[str(goal)][str(Agent.state)])
                 concen_sum += env.pheromone[str(goal)][str(Agent.state)]
         if concen_sum > concen_sum_max:
             concen_sum_max=concen_sum
-            goal_last=[cluster for cluster in goal_cluster]
-
-        goal_cluster.insert(0,goal_cluster.pop())
+            goal_last=each_allocation_scheme
 
     #任务分配完毕，开始统筹路径中的避障问题
     Route_final=[]
@@ -150,13 +150,13 @@ def update():
     #     len_Route.append(count)
     print(len_Route)
     env.final(Route_final)
-    with open("Phermenon.data","wb") as outfile:
+    with open("Phermenon_1.data","wb") as outfile:
         pickle.dump(env.pheromone,outfile)
-    with open("Route.data","wb") as outfile:
+    with open("Route_1.data","wb") as outfile:
         pickle.dump(Route_final,outfile)
     #保存任务分配表
     dislist=[]
-    with open("dislist.data","wb") as outfile:
+    with open("dislist_1.data","wb") as outfile:
         for cluster in goal_last:
             c=[]
             for goal in cluster:
@@ -199,7 +199,7 @@ def legal_state(route,index,time,env):
 
 if __name__ == "__main__":
 
-    con=Config("config_4.ini")
+    con=Config("config_5.ini")
     Agent_num=eval(con.Agent_config["num"])
     Agent_start=eval(con.Agent_config["start"])
     Agent_list=[]

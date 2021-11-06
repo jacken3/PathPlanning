@@ -8,15 +8,30 @@ import time
 
 
 def isLegal(goal,move):
+    around=[[0,0,0,0],[25,0,25,0],[-25,0,-25,0],[0,25,0,25],[0,-25,0,-25],\
+                    [25,25,25,25],[25,-25,25,-25],[-25,25,-25,25],[-25,-25,-25,-25]]
+    #该目标已经被寻找到则不再移动
+    if goalComplete.setdefault(str(env_real.canvas.coords(goal)),0):
+        return False
+    #目标移出边界也不移动
     coord=env_real.canvas.coords(goal)
     coord_after=np.array(coord)+np.array(move)
     if (coord_after<0).any() or coord_after[0]>env_real.MAZE_W*25 or coord_after[1]>env_real.MAZE_H*25:
         return False
+    #目标移动到障碍物也不移动
     if list(coord_after) in env_real.Obs:
         return False
-        pass
+
+    #移动后目标重叠也不移动
     for each in env_real.goal:
         if env_real.canvas.coords(each) == list(coord_after):
+            return False
+    
+    #八邻域内检测到Agent
+    around=[list(i) for i in list(np.array(around)+np.array(coord))]
+    for each_agent in env_real.Agent_rect:
+        print(env_real.canvas.coords(each_agent))
+        if env_real.canvas.coords(each_agent) in around:
             return False
 
     return True
@@ -26,7 +41,6 @@ def taskExecute():
     Mission_Lost=[0]*len(Agent_list)
     Mission_stage=[0]*len(Agent_list)
     Mission_compelete=np.array([0]*len(Agent_list))
-    #Mission_change=[0]*len(Agent_list)
     Agnet_direction={}
     DontGo=[[0]]*len(Agent_list)
     stage=[len(goal) for goal in dis_list]
@@ -35,17 +49,17 @@ def taskExecute():
     Flag=0
 
     while not Mission_compelete.all():
-        for each_goal,goal_img,i in zip(env_real.goal,env_real.goal_img,range(len(goal_real))):
-            if np.random.random()>0.95:
+        for each_goal,goal_img in zip(env_real.goal,env_real.goal_img):
+            if np.random.random()>0.7:
                 move=random.choice(direction_all)
                 if isLegal(each_goal,move):
                     env_real.canvas.move(each_goal,move[0],move[1])
                     env_real.canvas.move(goal_img,move[0],move[1])
-                    # goal_real[i][0]+=move[0]/25
-                    # goal_real[i][1]+=move[1]/25
                     env_real.update()
         time.sleep(1)
+        real_goal_coords=[env_real.canvas.coords(i) for i in env_real.goal]
         for Agent_tag in range(len(RouteFinal)):
+            Flag2=0
             #任务状态未丢失则按原定路线行进
             if not Mission_Lost[Agent_tag] and not Mission_compelete[Agent_tag]:
                 state_now=RouteFinal[Agent_tag][index[Agent_tag]]
@@ -65,9 +79,97 @@ def taskExecute():
                         Mission_Lost[Agent_tag]=1
                     else:
                         Mission_stage[Agent_tag] += 1
+                        goalComplete[str(state_next)]=1
+                        Flag2=1
                         if Mission_stage[Agent_tag]==stage[Agent_tag]:
                             Mission_compelete[Agent_tag]=1
-
+                #提前遭遇其他非预设目标
+                if  (state_next in real_goal_coords) & (not Flag2):
+                    goalComplete[str(state_next)]=1
+                    #获取当前遇到的goal的标签
+                    goal_tag=real_goal_coords.index(state_next)
+                    #tag_agent是机器人的标签
+                    Flag_find=False
+                    for tag_agent in range(len(dis_list)):
+                        #stage_tag是阶段的标签 
+                        for stage_tag in range(len(dis_list[tag_agent])):
+                            #找到该目标实际对应着哪个Agent的哪一个阶段的目标
+                            if goal_tag==dis_list[tag_agent][stage_tag]:
+                                stage_now=Mission_stage[tag_agent]
+                                #该Agent还未执行到被影响的阶段：则直接对后半段执行重规划
+                                if stage_tag > stage_now:
+                                    # if tag_agent==Agent_tag:
+                                    #     a=1
+                                    #     pass
+                                    if stage_tag+1>=len(dis_list[tag_agent]):
+                                        dis_list[tag_agent].remove(stage_tag)
+                                        stage[tag_agent]-=1
+                                        Flag_find=True
+                                        break
+                                    #获取一条直达路径
+                                    start=goal_coords[dis_list[tag_agent][stage_tag-1]]
+                                    #start=env_real.canvas.coords(env_real.goal[dis_list[tag_agent][stage_tag-1]])
+                                    end=goal_coords[dis_list[tag_agent][stage_tag+1]]
+                                    #end=env_real.canvas.coords(env_real.goal[dis_list[tag_agent][stage_tag+1]])
+                                    Path_new=RePlanning(end,start)
+                                    #将获取的新路径插入到原来的路径之中
+                                    #两个步骤。第一步首先删除原来在这两个状态之间的路径；第二部将新路径插入其中
+                                    index_start=RouteFinal[tag_agent].index(start)
+                                    index_end=RouteFinal[tag_agent].index(end)
+                                    del RouteFinal[tag_agent][index_start:index_end+1]
+                                    for s in Path_new:
+                                        RouteFinal[tag_agent].insert(index_start,s)
+                                        index_start+=1
+                                    dis_list[tag_agent].remove(stage_tag)
+                                    stage[tag_agent]-=1
+                                    Flag_find=True
+                                    break
+                                #该Agent正在执行被影响的阶段:跳过下一个goal,直接规划到下下个goal的路径
+                                if stage_tag == stage_now:
+                                    if tag_agent==Agent_tag:
+                                        Mission_stage[Agent_tag]+=1
+                                        if Mission_stage[Agent_tag]==stage[Agent_tag]:
+                                            Mission_compelete[Agent_tag]=1
+                                            Flag_find=True
+                                            break
+                                        else:
+                                            start=env_real.canvas.coords(env_real.Agent_rect[tag_agent])
+                                            end=goal_coords[dis_list[tag_agent][stage_tag+1]]
+                                            Path_new=RePlanning(end,start)
+                                            index_start=RouteFinal[tag_agent].index(start)
+                                            index_end=RouteFinal[tag_agent].index(end)
+                                            del RouteFinal[tag_agent][index_start:index_end+1]
+                                            for s in Path_new:
+                                                RouteFinal[tag_agent].insert(index_start,s)
+                                                index_start+=1
+                                            Flag_find=True
+                                            break
+                                    #获取一条直达路径
+                                    if stage_tag+1>=len(dis_list[tag_agent]):
+                                        Mission_compelete[tag_agent]=1
+                                        Flag_find=True
+                                        break
+                                    start=env_real.canvas.coords(env_real.Agent_rect[tag_agent])
+                                    end=goal_coords[dis_list[tag_agent][stage_tag+1]]
+                                    Path_new=RePlanning(end,start)
+                                    #将获取的新路径插入到原来的路径之中
+                                    #两个步骤。第一步首先删除原来在这两个状态之间的路径；第二部将新路径插入其中
+                                    index_start=RouteFinal[tag_agent].index(start)
+                                    index_end=RouteFinal[tag_agent].index(end)
+                                    del RouteFinal[tag_agent][index_start:index_end+1]
+                                    for s in Path_new:
+                                        RouteFinal[tag_agent].insert(start,s)
+                                        start+=1
+                                    dis_list[tag_agent].remove(stage_tag)
+                                    stage[tag_agent]-=1
+                                    Flag_find=True
+                                    break
+                                #该Agent已经执行过被影响的阶段：不做任何处理
+                                if stage_tag < stage_now:
+                                    Flag_find=True
+                                    break
+                        if Flag_find:
+                            break;            
             #任务丢失
             elif  Mission_Lost[Agent_tag] and not Mission_compelete[Agent_tag]:
                 # #第一次初始化矫正的目标
@@ -96,6 +198,7 @@ def taskExecute():
                 if not next_direction:
                     Mission_Lost[Agent_tag] = 0
                     Mission_stage[Agent_tag] += 1
+                    goalComplete[str(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))]=1
                     Agnet_direction[Agent_tag]=0
                     DontGo[Agent_tag]=[[0]]
                     if Mission_stage[Agent_tag]==stage[Agent_tag]:
@@ -110,8 +213,87 @@ def taskExecute():
                         for state in Path_new:
                             RouteFinal[Agent_tag].insert(idx,state)
                             idx+=1
-
                 else:
+                    #检查提前遭遇其他非预设目标
+                    if env_real.canvas.coords(env_real.Agent_rect[Agent_tag]) in real_goal_coords:
+                        state_next= env_real.canvas.coords(env_real.Agent_rect[Agent_tag])
+                        goalComplete[str(state_next)]=1
+                        #获取当前遇到的goal的标签
+                        goal_tag=real_goal_coords.index(state_next)
+                        #tag_agent是机器人的标签
+                        Flag_find=False
+                        for tag_agent in range(len(dis_list)):
+                            #stage_tag是阶段的标签 
+                            for stage_tag in range(len(dis_list[tag_agent])):
+                                #找到该目标实际对应着哪个Agent的哪一个阶段的目标
+                                if goal_tag==dis_list[tag_agent][stage_tag]:
+                                    stage_now=Mission_stage[tag_agent]
+                                    #该Agent还未执行到被影响的阶段：则直接对后半段执行重规划
+                                    if stage_tag > stage_now:
+                                        #获取一条直达路径
+                                        start=goal_coords[dis_list[tag_agent][stage_tag-1]]
+                                        #start=env_real.canvas.coords(env_real.goal[dis_list[tag_agent][stage_tag-1]])
+                                        end=goal_coords[dis_list[tag_agent][stage_tag+1]]
+                                        #end=env_real.canvas.coords(env_real.goal[dis_list[tag_agent][stage_tag+1]])
+                                        Path_new=RePlanning(end,start)
+                                        #将获取的新路径插入到原来的路径之中
+                                        #两个步骤。第一步首先删除原来在这两个状态之间的路径；第二部将新路径插入其中
+                                        index_start=RouteFinal[tag_agent].index(start)
+                                        index_end=RouteFinal[tag_agent].index(end)
+                                        del RouteFinal[tag_agent][index_start:index_end+1]
+                                        for s in Path_new:
+                                            RouteFinal[tag_agent].insert(index_start,s)
+                                            index_start+=1
+                                        dis_list[tag_agent].remove(stage_tag)
+                                        stage[tag_agent]-=1
+                                        Flag_find=True
+                                        break
+                                    #该Agent正在执行被影响的阶段:跳过下一个goal,直接规划到下下个goal的路径
+                                    if stage_tag == stage_now:
+                                        if tag_agent==Agent_tag:
+                                            Mission_stage[Agent_tag]+=1
+                                            if Mission_stage[Agent_tag]==stage[Agent_tag]:
+                                                Mission_compelete[Agent_tag]=1
+                                                Flag_find=True
+                                                break
+                                            else:
+                                                start=env_real.canvas.coords(env_real.Agent_rect[tag_agent])
+                                                end=goal_coords[dis_list[tag_agent][stage_tag+2]]
+                                                Path_new=RePlanning(end,start)
+                                                index_start=RouteFinal[tag_agent].index(start)
+                                                index_end=RouteFinal[tag_agent].index(end)
+                                                del RouteFinal[tag_agent][index_start:index_end+1]
+                                                for s in Path_new:
+                                                    RouteFinal[tag_agent].insert(index_start,s)
+                                                    index_start+=1
+                                                Flag_find=True
+                                                break
+                                        #获取一条直达路径
+                                        if stage_tag+1>=len(dis_list[tag_agent]):
+                                            Mission_compelete[tag_agent]=1
+                                            Flag_find=True
+                                            break
+                                        start=env_real.canvas.coords(env_real.Agent_rect[tag_agent])
+                                        end=goal_coords[dis_list[tag_agent][stage_tag+1]]
+                                        Path_new=RePlanning(end,start)
+                                        #将获取的新路径插入到原来的路径之中
+                                        #两个步骤。第一步首先删除原来在这两个状态之间的路径；第二部将新路径插入其中
+                                        index_start=RouteFinal[tag_agent].index(start)
+                                        index_end=RouteFinal[tag_agent].index(end)
+                                        del RouteFinal[tag_agent][index_start:index_end+1]
+                                        for s in Path_new:
+                                            RouteFinal[tag_agent].insert(start,s)
+                                            start+=1
+                                        dis_list[tag_agent].remove(stage_tag)
+                                        stage[tag_agent]-=1
+                                        Flag_find=True
+                                        break
+                                    #该Agent已经执行过被影响的阶段：不做任何处理
+                                    if stage_tag < stage_now:
+                                        Flag_find=True
+                                        break
+                            if Flag_find:
+                                break;            
                     for each in next_direction:
                         print(list(each))
                         print(list(each+np.array(env_real.canvas.coords(env_real.Agent_rect[Agent_tag]))))
@@ -173,7 +355,8 @@ def get_neighbors(state,env,goal):
         for each in surround:
             around=list(np.array(state)+np.array(each))
             if around not in env.Obs and (np.array(around)>0).all() and (np.array(around) < env.UNIT*env.MAZE_H).all() \
-                and (around not in env.getGoal() or around == goal):
+                :
+                #and (around not in env.getGoal() or around == goal)
                  neighbors.append(around)
 
         return neighbors 
@@ -181,12 +364,12 @@ def get_neighbors(state,env,goal):
 if __name__ == "__main__":
 
     #仿真环境和参数
-    con=Config("config_4.ini")
+    con=Config("config_5.ini")
     goal=eval(con.Maze_config["maze_goal"])
     goal_coords=[[25*(goal[i][0]-1)+2.5,25*(goal[i][1]-1)+2.5,25*(goal[i][0]-1)+22.5,25*(goal[i][1]-1)+22.5] for i in range(len(goal))]
 
     #实际环境配置文件
-    con_real=Config("config_4_modify.ini")
+    con_real=Config("config_5.ini")
     Agent_num=eval(con_real.Agent_config["num"])
     Agent_start=eval(con_real.Agent_config["start"])
     Agent_list=[]
@@ -194,17 +377,26 @@ if __name__ == "__main__":
         Agent_list.append(Agent(Agent_start[i],e_greedy=0.8))
     
     #真实环境
-    goal_real=eval(con_real.Maze_config["maze_goal"])    
+    goal_real=eval(con_real.Maze_config["maze_goal"])
+    real_goal_coords=[[25*(goal_real[i][0]-1)+2.5,25*(goal_real[i][1]-1)+2.5,25*(goal_real[i][0]-1)+22.5,25*(goal_real[i][1]-1)+22.5] for i in range(len(goal_real))]    
     env_real = Maze(Agent_list,con_real)
+    goalComplete=dict()
+    for goal_set in goal:
+        oval_center=[12.5,12.5] + np.array([25 * (goal_set[0]-1), 25 * (goal_set[1]-1)])
+        env_real.canvas.create_oval(oval_center[0] - 5, oval_center[1] - 5,
+                oval_center[0] + 5, oval_center[1] + 5,
+                fill='red',outline = '')
+    # for goalTag in range(len(env_real.goal)):
+    #     goalComplete[goalTag]=0
 
     #读取仿真获得的数据
-    with open("Route.data","rb") as inputfile:
+    with open("Route_1.data","rb") as inputfile:
         RouteFinal=pickle.load(inputfile)
-    with open("Phermenon.data","rb") as inputfile:
+    with open("Phermenon_1.data","rb") as inputfile:
         env_real.pheromone=pickle.load(inputfile)
-    with open("dislist.data","rb") as inputfile:
+    with open("dislist_1.data","rb") as inputfile:
         dis_list=pickle.load(inputfile)
 
-  
+    
     env_real.after(100, taskExecute)
     env_real.mainloop()
