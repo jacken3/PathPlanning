@@ -150,13 +150,13 @@ def update():
     #     len_Route.append(count)
     print(len_Route)
     env.final(Route_final)
-    with open("Phermenon_1.data","wb") as outfile:
+    with open("Phermenon_2.data","wb") as outfile:
         pickle.dump(env.pheromone,outfile)
-    with open("Route_1.data","wb") as outfile:
+    with open("Route_2.data","wb") as outfile:
         pickle.dump(Route_final,outfile)
     #保存任务分配表
     dislist=[]
-    with open("dislist_1.data","wb") as outfile:
+    with open("dislist_2.data","wb") as outfile:
         for cluster in goal_last:
             c=[]
             for goal in cluster:
@@ -199,7 +199,7 @@ def legal_state(route,index,time,env):
 
 if __name__ == "__main__":
 
-    con=Config("config_5.ini")
+    con=Config("config_6.ini")
     Agent_num=eval(con.Agent_config["num"])
     Agent_start=eval(con.Agent_config["start"])
     Agent_list=[]

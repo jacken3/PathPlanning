@@ -364,12 +364,12 @@ def get_neighbors(state,env,goal):
 if __name__ == "__main__":
 
     #仿真环境和参数
-    con=Config("config_5.ini")
+    con=Config("config_6.ini")
     goal=eval(con.Maze_config["maze_goal"])
     goal_coords=[[25*(goal[i][0]-1)+2.5,25*(goal[i][1]-1)+2.5,25*(goal[i][0]-1)+22.5,25*(goal[i][1]-1)+22.5] for i in range(len(goal))]
 
     #实际环境配置文件
-    con_real=Config("config_5.ini")
+    con_real=Config("config_6.ini")
     Agent_num=eval(con_real.Agent_config["num"])
     Agent_start=eval(con_real.Agent_config["start"])
     Agent_list=[]
@@ -390,11 +390,11 @@ if __name__ == "__main__":
     #     goalComplete[goalTag]=0
 
     #读取仿真获得的数据
-    with open("Route_1.data","rb") as inputfile:
+    with open("Route_2.data","rb") as inputfile:
         RouteFinal=pickle.load(inputfile)
-    with open("Phermenon_1.data","rb") as inputfile:
+    with open("Phermenon_2.data","rb") as inputfile:
         env_real.pheromone=pickle.load(inputfile)
-    with open("dislist_1.data","rb") as inputfile:
+    with open("dislist_2.data","rb") as inputfile:
         dis_list=pickle.load(inputfile)
 
     
