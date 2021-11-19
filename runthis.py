@@ -199,7 +199,7 @@ def legal_state(route,index,time,env):
 
 if __name__ == "__main__":
 
-    con=Config("config_6.ini")
+    con=Config("config_7.ini")
     Agent_num=eval(con.Agent_config["num"])
     Agent_start=eval(con.Agent_config["start"])
     Agent_list=[]

@@ -4,8 +4,8 @@ import math
 import configparser
 
 
-Width=30
-Height=30
+Width=25
+Height=25
 UNIT=20
 
 def callback(event,x,y,flag,param):
@@ -67,7 +67,7 @@ config.set("Maze","Maze_W",str(Width))
 config.set("Maze","UNIT",str(25))
 config.set("Maze","Maze_Obs",str(Maze_Obs))
 config.set("Maze","Maze_Goal",str(Maze_Goal))
-config.write(open('config_6.ini', "w"))
+config.write(open('config_7.ini', "w"))
 print("start:",start)
 print("Obs:",Maze_Obs)
 print("Goal:",Maze_Goal)
