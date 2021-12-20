@@ -19,7 +19,8 @@ import tkinter as tk
 from config import Config
 from PIL import Image, ImageTk
 from numpy.lib.twodim_base import triu_indices_from
-
+import pandas as pd
+from itertools import combinations
 
 
 class Maze(tk.Tk, object):
@@ -32,7 +33,7 @@ class Maze(tk.Tk, object):
         self.Agent_list=Agent_list
         self.title('MAPP Simulation System v1.0')
         self.geometry('{0}x{1}'.format(self.MAZE_H * self.UNIT, self.MAZE_H * self.UNIT))
-        self.iconbitmap('HITlogoblue.ico')
+        self.iconbitmap('VisualSrc/HITlogoblue.ico')
         #以具体坐标的形式保存了所有障碍物
         self.Obs=[]
         #以在画布中的序号保存Agent
@@ -75,7 +76,7 @@ class Maze(tk.Tk, object):
 
        
         global MBase_image 
-        image = Image.open('MBase.gif')
+        image = Image.open('VisualSrc/MBase.gif')
         image=image.resize((20,20))
         MBase_image = ImageTk.PhotoImage(image)
 
@@ -91,7 +92,7 @@ class Maze(tk.Tk, object):
 
         # create red rect 1
         for each in range(len(self.Agent_list)):
-            image_file=Image.open('num'+str(each+1)+'.png')
+            image_file=Image.open('VisualSrc/num'+str(each+1)+'.png')
             image_file=image_file.resize((20,20))
             self.img_UAV.append(ImageTk.PhotoImage(image_file))
             x=(self.Agent_list[each].start[0]-1)*self.UNIT
@@ -177,7 +178,6 @@ class Maze(tk.Tk, object):
                 self.canvas.move(self.Agent[Agent_tag],base_action[0],base_action[1])
                 self.update()
 
-    #利用k-means算法实现目标点的聚类
     def goalCluster(self):
         goal_cluster=[]
         if len(self.Agent_list)<=len(self.goal):
@@ -217,7 +217,70 @@ class Maze(tk.Tk, object):
             print("Agent数量与Goal数量一致，无需聚类")
         
         return goal_cluster
-            
 
+    #利用相似度进行聚类
+    def goalCluster_by_similarity(self):
+        goalsCoord=self.getGoal()
+        #相似度Table 行键为Agent的ID 列族为两个目标的两两组合
+        TwogoalCombine=list(combinations(range(len(goalsCoord)),2))
+        S_Table=pd.DataFrame(columns=TwogoalCombine,dtype=np.float64)
 
-                
+        for robot in self.Agent_list:
+            S_Table=S_Table.append(pd.Series([0]*len(TwogoalCombine),index=S_Table.columns,name=robot.tag))
+            for combine in TwogoalCombine:
+                route=robot.final_route([goalsCoord[combine[0]]],self)
+                route_=robot.final_route([goalsCoord[combine[1]]],self)
+                #计算两条路径的相似度
+                length=min(len(route),len(route_))
+                diff=np.max(abs(np.array(route[0:length])-np.array(route_[0:length])),axis=1)
+                sim_length=np.count_nonzero(diff<=self.UNIT)
+                sim_score=sim_length/length
+                S_Table.loc[robot.tag,[combine]]=sim_score       
+        print("相似性矩阵:\n",S_Table)
+        Sum_similarity=S_Table.apply(lambda x: x.sum())
+
+        max_n=Sum_similarity.nlargest(len(self.goal)-len(self.Agent_list)).index
+        Close_list=[]
+        Open_list=list(range(len(self.goal)))
+        for pair in max_n:
+            #其中任意有一个经过处理
+            if not pair[0] in Open_list or not pair[1] in Open_list:
+                #1号没有经过处理
+                if pair[0] in Open_list:
+                    Open_list.remove(pair[0])
+                    for cluster in Close_list:
+                        if pair[1] in cluster:
+                            cluster.append(pair[0])
+                #2号没有经过处理
+                if pair[1] in Open_list:
+                    Open_list.remove(pair[1])
+                    for cluster in Close_list:
+                        if pair[0] in cluster:
+                            cluster.append(pair[1])
+                #二者都被处理过
+                else:
+                    for cluster1 in Close_list:
+                        if pair[0] in cluster1:
+                            for cluster2 in Close_list:
+                                if pair[1] in cluster2:
+                                    Close_list.remove(cluster1)
+                                    Close_list.remove(cluster2)
+                                    Close_list.append(list(set(cluster1)|set(cluster2)))
+                                    break
+                            break
+            #二者都未经过处理
+            else:
+                Open_list.remove(pair[0])
+                Open_list.remove(pair[1])
+                Close_list.append([pair[0],pair[1]])
+        for remain in Open_list:
+            Close_list.append([remain])
+
+        goal_cluster=list()
+        for cluster in Close_list:
+            clusterCoord=list()
+            for index in cluster:
+                clusterCoord.append(goalsCoord[index])
+            goal_cluster.append(clusterCoord)
+
+        return goal_cluster

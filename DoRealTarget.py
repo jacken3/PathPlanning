@@ -266,6 +266,7 @@ def UnormalAction(Agent_tag):
     return next_direction
 
 def DoUnormalaction(Agent_tag,next_direction):
+
     if not next_direction:
         Mission_Lost[Agent_tag] = 0
         Mission_stage[Agent_tag] += 1
@@ -286,6 +287,7 @@ def DoUnormalaction(Agent_tag,next_direction):
                 idx+=1
     else:
         #检查提前遭遇其他非预设目标
+        Done=False
         state_next= env_real.canvas.coords(env_real.Agent_rect[Agent_tag])
         TaskRedistribution(state_next=state_next,Agent_tag=Agent_tag,FindOwnTarget=False)  
         for each in next_direction:
@@ -325,7 +327,7 @@ if __name__ == "__main__":
     Agent_start=eval(con_real.Agent_config["start"])
     Agent_list=list()
     for i in range(Agent_num):
-        Agent_list.append(Agent(Agent_start[i],e_greedy=0.8))
+        Agent_list.append(Agent(Agent_start[i],e_greedy=0.8,AgentTag=i))
     goal_real=eval(con_real.Maze_config["maze_goal"])
     real_goal_coords=[[25*(goal_real[i][0]-1)+2.5,25*(goal_real[i][1]-1)+2.5,25*(goal_real[i][0]-1)+22.5,25*(goal_real[i][1]-1)+22.5] for i in range(len(goal_real))]    
     env_real = Maze(Agent_list,con_real)

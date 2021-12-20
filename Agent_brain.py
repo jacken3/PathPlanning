@@ -7,13 +7,14 @@ UNIT = 25
 
 class Agent(object):
 
-    def __init__(self,start,e_greedy):
+    def __init__(self,start,e_greedy,AgentTag):
         self.actions = [0,1,2,3]  # a list
         self.start=start
         self.epsilon = e_greedy
         self.experience={}
         self.state= [12.5+(self.start[0]-1)*UNIT-10, 12.5+(self.start[1]-1)*UNIT-10,
            12.5+(self.start[0]-1)*UNIT+10, 12.5+(self.start[1]-1)*UNIT+10]
+        self.tag=AgentTag
 
     def get_neighbors(self,env,goal):
         neighbors=[]
@@ -21,8 +22,8 @@ class Agent(object):
         surround=[[UNIT,0,UNIT,0],[-UNIT,0,-UNIT,0],[0,UNIT,0,UNIT],[0,-UNIT,0,-UNIT]]
         for each in surround:
             around=list(np.array(self.state)+np.array(each))
-            if around not in env.Obs and (np.array(around)>0).all() and (np.array(around) < env.UNIT*env.MAZE_H).all() \
-                and (around not in env.getGoal() or around == goal):
+            if around not in env.Obs and (np.array(around)>0).all() and (np.array(around) < env.UNIT*env.MAZE_H).all(): \
+                #and (around not in env.getGoal() or around == goal):
                  neighbors.append(around)
 
         return neighbors 
@@ -70,6 +71,9 @@ class Agent(object):
         return Route
 
     def final_route(self,cluster,env):
+
+        self.state= [12.5+(self.start[0]-1)*UNIT-10, 12.5+(self.start[1]-1)*UNIT-10,
+           12.5+(self.start[0]-1)*UNIT+10, 12.5+(self.start[1]-1)*UNIT+10]
         final_route=[self.state]
         #获得对应目标的信息素
         

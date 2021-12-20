@@ -3,6 +3,7 @@ from env import Maze
 import numpy as np
 from Agent_brain import Agent
 import random
+import heapq
 from config import Config
 import pandas as pd
 import pickle
@@ -11,9 +12,8 @@ import itertools
 
 def update():
 
-    goal_list=env.getGoal()
-
-    for episode in range(500): 
+    #对地图的学习
+    for episode in range(200): 
         
         visual = 0 
         
@@ -46,9 +46,9 @@ def update():
                           12.5+(Robot.start[0]-1)*env.UNIT+10, 12.5+(Robot.start[1]-1)*env.UNIT+10]
     env.reset(visual)
 
-    # 地图信息素信息构建完毕，开始实现目标的K-means聚类
-    goal_cluster=env.goalCluster()
-    print("分组情况：",goal_cluster)
+    # 地图信息素信息构建完毕，开始实现目标的聚类
+    goal_cluster=env.goalCluster_by_similarity()
+    print("分组情况:",goal_cluster)
 
 
     # 地图信息素信息构建完毕，进入任务调度处理 任务分配的标准为最大化信息素浓度和
@@ -66,14 +66,22 @@ def update():
             concen_sum_max=concen_sum
             goal_last=each_allocation_scheme
 
+    #新算法
+    # route_set=dict()
+    # for robot in Agent_list:
+    #     routeAll=list()
+    #     for goal in goal_list:
+    #         routeAll.append(robot.final_route([goal],env))
+    #     R=sim_calculation(routeAll,len(goal_list)-Agent_num)
+    #     route_set[robot.tag]=R
+
     #任务分配完毕，开始统筹路径中的避障问题
     Route_final=[]
     for cluster,robot in zip(goal_last,Agent_list):
             Route_final.append(robot.final_route(cluster,env))
-
-
+    
     #Route_final=[[[2,1],[1,1],[1,2]],[[1,0],[1,1],[2,1]],[[2,0],[1,0],[1,1]]] 测试用
-    #记录最长路径
+    #记录最长路径 
     route_len=2
     #记录当前遍历的路径长度
     i=0
@@ -150,13 +158,13 @@ def update():
     #     len_Route.append(count)
     print(len_Route)
     env.final(Route_final)
-    with open("Phermenon_2.data","wb") as outfile:
+    with open("Phermenon_3.data","wb") as outfile:
         pickle.dump(env.pheromone,outfile)
-    with open("Route_2.data","wb") as outfile:
+    with open("Route_3.data","wb") as outfile:
         pickle.dump(Route_final,outfile)
     #保存任务分配表
     dislist=[]
-    with open("dislist_2.data","wb") as outfile:
+    with open("dislist_3.data","wb") as outfile:
         for cluster in goal_last:
             c=[]
             for goal in cluster:
@@ -167,7 +175,7 @@ def update():
         pickle.dump(dislist,outfile)
     env.destroy()
     print('game over!')
-    
+
 
 def check_cons(state_union,state_union_next):
 
@@ -184,7 +192,6 @@ def check_cons(state_union,state_union_next):
 
     return [vertex_collision,edge_collision]
 
-
 def legal_state(route,index,time,env):
     state_now=np.array(route[index][time])
     #surround=np.array([[1,0],[-1,0,],[0,1],[0,-1]])
@@ -198,15 +205,21 @@ def legal_state(route,index,time,env):
     return random.choice(states)
 
 if __name__ == "__main__":
-
-    con=Config("config_7.ini")
+    
+    #配置文件的导入
+    con=Config("MapConfig/config_4.ini")
     Agent_num=eval(con.Agent_config["num"])
     Agent_start=eval(con.Agent_config["start"])
+
+    #创建机器人
     Agent_list=[]
     for i in range(Agent_num):
-        Agent_list.append(Agent(Agent_start[i],e_greedy=0.8))
+        Agent_list.append(Agent(Agent_start[i],e_greedy=0.5,AgentTag=i))
 
+    #创建环境
     env = Maze(Agent_list,con)
+    goal_list=env.getGoal()
 
+    #执行主程序
     env.after(100, update)
     env.mainloop()
