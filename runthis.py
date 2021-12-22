@@ -52,7 +52,6 @@ def update():
 
 
     # 地图信息素信息构建完毕，进入任务调度处理 任务分配的标准为最大化信息素浓度和
-
     concen_sum_max=0
     
     for each_allocation_scheme in itertools.permutations(goal_cluster,len(goal_cluster)):
@@ -65,15 +64,6 @@ def update():
         if concen_sum > concen_sum_max:
             concen_sum_max=concen_sum
             goal_last=each_allocation_scheme
-
-    #新算法
-    # route_set=dict()
-    # for robot in Agent_list:
-    #     routeAll=list()
-    #     for goal in goal_list:
-    #         routeAll.append(robot.final_route([goal],env))
-    #     R=sim_calculation(routeAll,len(goal_list)-Agent_num)
-    #     route_set[robot.tag]=R
 
     #任务分配完毕，开始统筹路径中的避障问题
     Route_final=[]

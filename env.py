@@ -128,8 +128,7 @@ class Maze(tk.Tk, object):
                 rect_center[0] + 10, rect_center[1] + 10,
                 fill='',outline = ''))
         self.update()
-
-        
+       
     def getGoal(self):
         goal=[]
         for each in self.goal:
@@ -231,51 +230,62 @@ class Maze(tk.Tk, object):
                 route=robot.final_route([goalsCoord[combine[0]]],self)
                 route_=robot.final_route([goalsCoord[combine[1]]],self)
                 #计算两条路径的相似度
-                length=min(len(route),len(route_))
-                diff=np.max(abs(np.array(route[0:length])-np.array(route_[0:length])),axis=1)
-                sim_length=np.count_nonzero(diff<=self.UNIT)
-                sim_score=sim_length/length
+                sim_score=self.Sim_Caculate(route,route_)
                 S_Table.loc[robot.tag,[combine]]=sim_score       
         print("相似性矩阵:\n",S_Table)
         Sum_similarity=S_Table.apply(lambda x: x.sum())
 
-        max_n=Sum_similarity.nlargest(len(self.goal)-len(self.Agent_list)).index
+        #将相似度最高的几个目标点进行聚类
+        max_sort=Sum_similarity.nlargest(len(TwogoalCombine)).index
+        # idx=0
+        # max_n=list()
+        # for _ in range(len(goalsCoord)-len(self.Agent_list)):
+        #     if max_sort[idx][0][0] in 
         Close_list=[]
         Open_list=list(range(len(self.goal)))
-        for pair in max_n:
-            #其中任意有一个经过处理
-            if not pair[0] in Open_list or not pair[1] in Open_list:
-                #1号没有经过处理
-                if pair[0] in Open_list:
-                    Open_list.remove(pair[0])
-                    for cluster in Close_list:
-                        if pair[1] in cluster:
-                            cluster.append(pair[0])
-                #2号没有经过处理
-                if pair[1] in Open_list:
-                    Open_list.remove(pair[1])
-                    for cluster in Close_list:
-                        if pair[0] in cluster:
-                            cluster.append(pair[1])
-                #二者都被处理过
-                else:
-                    for cluster1 in Close_list:
-                        if pair[0] in cluster1:
-                            for cluster2 in Close_list:
-                                if pair[1] in cluster2:
-                                    Close_list.remove(cluster1)
-                                    Close_list.remove(cluster2)
-                                    Close_list.append(list(set(cluster1)|set(cluster2)))
-                                    break
-                            break
-            #二者都未经过处理
-            else:
+
+        cluster_num=0
+        for pair in max_sort:
+            #集合次数足够
+            if cluster_num==len(self.goal)-len(self.Agent_list):
+                break
+            #两个目标点都未曾参与过聚类
+            elif (pair[0] in Open_list) and (pair[1] in Open_list):
                 Open_list.remove(pair[0])
                 Open_list.remove(pair[1])
                 Close_list.append([pair[0],pair[1]])
+                cluster_num+=1
+            #两个目标点中至少有一个参与过聚类
+            else:
+                pass
+                # #1号目标点没有参与过聚类
+                # if pair[0] in Open_list :
+                #     Open_list.remove(pair[0])
+                #     for cluster in Close_list:
+                #         if pair[1] in cluster:
+                #             cluster.append(pair[0])
+                # #2号目标点没有参与过聚类
+                # elif pair[1] in Open_list:
+                #     Open_list.remove(pair[1])
+                #     for cluster in Close_list:
+                #         if pair[0] in cluster:
+                #             cluster.append(pair[1])
+                # #二者都参与过聚类
+                # else:
+                #     for cluster1 in Close_list:
+                #         if pair[0] in cluster1:
+                #             for cluster2 in Close_list:
+                #                 if pair[1] in cluster2:
+                #                     Close_list.remove(cluster1)
+                #                     Close_list.remove(cluster2)
+                #                     Close_list.append(list(set(cluster1)|set(cluster2)))
+                #                     break
+                #             break
+            
         for remain in Open_list:
             Close_list.append([remain])
 
+        #返回目标点聚类
         goal_cluster=list()
         for cluster in Close_list:
             clusterCoord=list()
@@ -284,3 +294,27 @@ class Maze(tk.Tk, object):
             goal_cluster.append(clusterCoord)
 
         return goal_cluster
+
+    def Sim_Caculate(self,route,route_):
+        length=min(len(route),len(route_))
+        len_=length
+        if len(route)>=len(route_):
+            for s in route_[::-1]:
+                diff=np.max(abs(np.array(route)-np.array(s)),axis=1)
+                if np.where(diff<=self.UNIT)[0].size!=0:
+                    #sim_length=np.max(np.where(diff<=self.UNIT))+1
+                    sim_score=len_/length
+                    break
+                sim_score=0
+                len_-=1
+        else:
+            for s in route[::-1]:
+                diff=np.max(abs(np.array(route_)-np.array(s)),axis=1)
+                if np.where(diff<=self.UNIT)[0].size!=0:
+                    #sim_length=np.max(np.where(diff<=self.UNIT))+1
+                    sim_score=len_/length
+                    break
+                sim_score=0  
+                len_-=1 
+
+        return sim_score

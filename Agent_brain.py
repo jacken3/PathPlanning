@@ -28,7 +28,6 @@ class Agent(object):
 
         return neighbors 
 
-
     def action(self,goal,env,HasExplored):
 
         #依据信息素浓度选择下一个状态
