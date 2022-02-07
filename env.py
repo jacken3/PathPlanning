@@ -26,7 +26,7 @@ from itertools import combinations
 class Maze(tk.Tk, object):
     def __init__(self,Agent_list,con):
         super(Maze, self).__init__()
-
+        self.con=con
         self.UNIT = eval(con.Maze_config["unit"])
         self.MAZE_H =eval(con.Maze_config["maze_h"])  
         self.MAZE_W =eval(con.Maze_config["maze_w"]) 
@@ -61,7 +61,7 @@ class Maze(tk.Tk, object):
         for r in range(0, self.MAZE_H * self.UNIT, self.UNIT):
             x0, y0, x1, y1 = 0, r, self.MAZE_W * self.UNIT, r
             self.canvas.create_line(x0, y0, x1, y1,fill = 'black', dash = (4,4))
-
+        
         # create origin
         origin = np.array([12.5, 12.5])
 
@@ -92,7 +92,7 @@ class Maze(tk.Tk, object):
 
         # create red rect 1
         for each in range(len(self.Agent_list)):
-            image_file=Image.open('VisualSrc/num'+str(each+1)+'.png')
+            image_file=Image.open('VisualSrc/UAV_1.gif')#num'+str(each+1)+'.png
             image_file=image_file.resize((20,20))
             self.img_UAV.append(ImageTk.PhotoImage(image_file))
             x=(self.Agent_list[each].start[0]-1)*self.UNIT

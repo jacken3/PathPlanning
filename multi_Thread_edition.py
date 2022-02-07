@@ -3,27 +3,32 @@ from env import Maze
 import numpy as np
 from Agent_brain import Agent
 import random
+import heapq
 from config import Config
 import pandas as pd
 import pickle
 import itertools
+import threading
 import time
+
+def job(ID,agent,goal):
+    #print("Start:%d" %ID)
+    Route=agent.find_way(goal,env)
+    #print(Route)
+    #print("Done:%d" %ID)
+    #env.update()
+    #env.show_route(Route,ID,0)
+
+
 
 
 def update():
 
-    # 程序计时，测试用
-    # start=time.time()
-
-    #首次寻路，采用A*算法获得初始路径
-    for i,robot in zip(range(len(Agent_list)),Agent_list):
-            robot.A_find_way(goal_list[i],env)
-            env.update()
-
+    #对地图的学习
+    start=time.time()
     for episode in range(200): 
-        
         visual = 0 
-
+        
         #重置每个机器人的状态
         for Robot in Agent_list:
             Robot.state= [12.5+(Robot.start[0]-1)*env.UNIT-10, 12.5+(Robot.start[1]-1)*env.UNIT-10,
@@ -33,24 +38,28 @@ def update():
         env.update()  
 
         #每个Agent随机寻路,需要的参数为Agent的目标
-        for i,robot in zip(range(len(Agent_list)),Agent_list):
-            Route=robot.find_way(goal_list[i],env)
-            env.update()
-            # 用于训练中的可视化
-            # env.show_route(Route,i,0 )
+        threads=[]
+        for i in range(len(Agent_list)):
+            t=threading.Thread(target=job,args=[i,Agent_list[i],goal_list[i]])
+            t.start()
+            threads.append(t)
+        
+        #等待所有线程结束
+        for _ in threads:
+            _.join()
 
-        #更改Agent的目标，实际是对Goal列表做了一个移位操作
+        #change goal for each Agent 本质是对goal列表进行了一个移位操作
+        print("Done ALL")
         goal_list.insert(0,goal_list.pop())
         
         #信息素随时间的衰减
         for goal in env.pheromone.keys():
             for state in env.pheromone[goal]:
                 env.pheromone[goal][state]*=0.9
-    # 程序耗时测试
-    # end=time.time()
-    # print("总耗时：",end-start)        
+    
+    end=time.time()
+    print("总耗时：",end-start)       
 
-    #还原Agent的初始状态
     for Robot in Agent_list:
             Robot.state= [12.5+(Robot.start[0]-1)*env.UNIT-10, 12.5+(Robot.start[1]-1)*env.UNIT-10,\
                           12.5+(Robot.start[0]-1)*env.UNIT+10, 12.5+(Robot.start[1]-1)*env.UNIT+10]
@@ -60,17 +69,17 @@ def update():
     goal_cluster=env.goalCluster_by_similarity()
     print("分组情况:",goal_cluster)
 
+
     # 地图信息素信息构建完毕，进入任务调度处理 任务分配的标准为最大化信息素浓度和
-    concen_sum_max=0 #记录信息素浓度和的最大值
+    concen_sum_max=0
     
-    #遍历所有的分配方案
     for each_allocation_scheme in itertools.permutations(goal_cluster,len(goal_cluster)):
         each_allocation_scheme=list(each_allocation_scheme)
         concen_sum=0
         for cluster,Agent in zip(each_allocation_scheme,Agent_list):
             for goal in cluster:
+                print(env.pheromone[str(goal)][str(Agent.state)])
                 concen_sum += env.pheromone[str(goal)][str(Agent.state)]
-        #与现有的最大信息素浓度和进行比较 如果本轮信息素浓度和更大则替换之并记录当前的分配方案
         if concen_sum > concen_sum_max:
             concen_sum_max=concen_sum
             goal_last=each_allocation_scheme
@@ -78,21 +87,27 @@ def update():
     #任务分配完毕，开始统筹路径中的避障问题
     Route_final=[]
     for cluster,robot in zip(goal_last,Agent_list):
-            Route_final.append(robot.final_route(cluster,env))
+            length=[(goal,len(robot.final_route([goal],env))) for goal in cluster]
+            length_order=sorted(length,key=lambda x:x[1],reverse=False)
+            cluster_order=[item[0] for item in length_order]
+            Route_final.append(robot.final_route(cluster_order,env))
     
-     
-    route_len=2 #用于记录最长路径
-    
-    i=0 #记录当前遍历的路径长度
+    #Route_final=[[[2,1],[1,1],[1,2]],[[1,0],[1,1],[2,1]],[[2,0],[1,0],[1,1]]] 测试用
+    #记录最长路径 
+    route_len=2
+    #记录当前遍历的路径长度
+    i=0
     len_Route=[0]*Agent_num
-    while i < route_len-1:  
-        #右对齐所有路径（即对长度不足的路径填充目标点坐标直到所有路径等长） 
+    while i < route_len-1:
+        
+        #右对齐所有路径
         for Agent_tag,route in zip(range(Agent_num),Route_final):
             if len(route)==i+1:
                 if len_Route[Agent_tag]==0:
                     len_Route[Agent_tag]=len(route)
                 route.append(route[i])
                 
+
         #同一时刻各个Agent所在的坐标
         stateSameTime=[tuple(Route_final[Agent_index][i]) for Agent_index in range(len(Agent_list))]
         #下一个时刻各个Agent所在的坐标
@@ -141,26 +156,27 @@ def update():
 
         route_len=max([len(route) for route in Route_final])
         i+=1
-
-    #len_route记录的是所有路径的初始长度，当冲突处理完后，最长路径的记录值为0，我们需要修改
     for i in range(Agent_num):
         if len_Route[i]==0:
             len_Route[i]=route_len
-    #记录路径长度到文件
     step_num_table=pd.DataFrame(columns=range(1,Agent_num+1),data=[len_Route])
     step_num_table.to_csv('step_count.csv',mode='a')
-
-    #展示最后生成的路径
+    # for i in range(Agent_num):
+    #     count=0
+    #     state_last=[0,0,0,0]
+    #     while not Route_final[i][count]==state_last and count <len(Route_final[i])-1 :
+    #         state_last=Route_final[i][count]
+    #         count+=1
+    #     len_Route.append(count)
+    print(len_Route)
     env.final(Route_final)
-
-    #记录信息素、路径以及目标分配表到文件
-    with open("Model/Phermenon_3.data","wb") as outfile:
+    with open("Phermenon_3.data","wb") as outfile:
         pickle.dump(env.pheromone,outfile)
-    with open("Model/Route_3.data","wb") as outfile:
+    with open("Route_3.data","wb") as outfile:
         pickle.dump(Route_final,outfile)
     #保存任务分配表
     dislist=[]
-    with open("Model/dislist_3.data","wb") as outfile:
+    with open("dislist_3.data","wb") as outfile:
         for cluster in goal_last:
             c=[]
             for goal in cluster:
@@ -190,6 +206,7 @@ def check_cons(state_union,state_union_next):
 
 def legal_state(route,index,time,env):
     state_now=np.array(route[index][time])
+    #surround=np.array([[1,0],[-1,0,],[0,1],[0,-1]])
     surround=np.array([[env.UNIT,0,env.UNIT,0],[-env.UNIT,0,-env.UNIT,0],[0,env.UNIT,0,env.UNIT],[0,-env.UNIT,0,-env.UNIT]])
     states=[]
     for each in surround :
@@ -202,9 +219,9 @@ def legal_state(route,index,time,env):
 if __name__ == "__main__":
     
     #配置文件的导入
-    con=Config("MapConfig/config_test.ini")
+    con=Config("MapConfig/config_4.ini")
     Agent_num=eval(con.Agent_config["num"])
-    Agent_start=eval(con.Agent_config["start"])
+    Agent_start=eval(con.Agent_config["start"]) 
 
     #创建机器人
     Agent_list=[]
